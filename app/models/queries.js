@@ -174,7 +174,7 @@ const getKategorije= (request, response) => {
 }
 
 const getStatusi = (request, response) => {
-  pool.query('select s.idstatus, s.nazivstatus from statusrada s', (error, results) => {
+  pool.query('select s.idstatus, s.nazivstatus from statusrada s where s.idstatus <> 1', (error, results) => {
     if (error) {
       throw error
     }
@@ -349,7 +349,44 @@ const updateWorkGrade = (request, response) => {
       if (error) {
         throw error
       }
-      response.status(200).send(`User modified with ID: ${RadId}`)
+      response.status(200).send(`Work modified with ID: ${RadId}`)
+    }
+  )
+}
+
+const updateWorkStatus = (request, response) => {
+  
+  
+  const { RadId} = request.body
+  console.log("Upd rad1: "+RadId)
+
+  pool.query(
+    'UPDATE pristupnirad SET statusid = 2 where idrad = $1',
+    [RadId],
+    (error, results) => {
+      if (error) {
+        throw error
+      }
+      response.status(200).send(`Work modified with ID: ${RadId}`)
+    }
+  )
+}
+
+const updateWorkAcceptance = (request, response) => {
+  
+  
+  const { RadId,Ocjena} = request.body
+  console.log("Upd rad1: "+RadId)
+  console.log("Upd ocjena1: "+Ocjena)
+
+  pool.query(
+    'UPDATE pristupnirad SET ocjena = $1, statusid=3 where idrad = $2',
+    [Ocjena,RadId],
+    (error, results) => {
+      if (error) {
+        throw error
+      }
+      response.status(200).send(`Work modified with ID: ${RadId}`)
     }
   )
 }
@@ -375,6 +412,8 @@ module.exports = {
   getAllMentoriRad,
   getMentoriSpecifRada,
   updateWorkGrade,
+  updateWorkStatus,
+  updateWorkAcceptance,
   ProvjeriOcjenuRadaMentora,
   createWork
 }

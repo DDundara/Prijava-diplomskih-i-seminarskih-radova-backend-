@@ -245,6 +245,61 @@ const getRadoviMentor = (request, response) => {
   })
 }
 
+const getRadoviMentorPretraga = (request, response) => {
+  const uname = request.params.username
+  const datumod = request.query.datumod;
+  const datumdo = request.query.datumdo;
+  console.log("User pretraga: "+uname)
+  console.log("Datum od: "+datumod)
+  console.log("Datum do: "+datumdo)
+
+
+if(request.query.datumod!=null && request.query.datumod!="" && request.query.datumdo!=null && request.query.datumdo!=""){
+
+  pool.query('select pr.idrad,pr.nazivrad,pr.opis, \
+  pr.datumdospijeca,vr.nazivvrsta as "VrstaRada", \
+  kt.idkat, kt.nazivKat as "KategorijaRada", \
+  case when (select count(*) from kategorija ktm where ktm.moderatorid=u.id and ktm.idkat = kt.idkat) > 0 then 1 else 0 \
+  end "MentorKat", \
+  sr.nazivStatus as "StatusRada", \
+  u.name as "MentorRada", au.name as "AutorRada",  pr.ocjena as "FinalOcjena", mr.ocjena as "RadOcjena" from pristupnirad pr \
+  inner join vrstarada vr on pr.vrstaRadaId = vr.idVrsta \
+  inner join kategorija kt ON kt.idKat = pr.kategorijaId \
+  inner join statusrada sr on pr.statusId = sr.idStatus \
+  inner join mentorirad mr on mr.idrad = pr.idrad \
+  inner join users u on mr.idment = u.id \
+  inner join users au on pr.autorid = au.id \
+  where u.username = $1 and pr.datumdospijeca between $2 and $3',[uname,datumod,datumdo], (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
+else
+{
+  pool.query('select pr.idrad,pr.nazivrad,pr.opis, \
+  pr.datumdospijeca,vr.nazivvrsta as "VrstaRada", \
+  kt.idkat, kt.nazivKat as "KategorijaRada", \
+  case when (select count(*) from kategorija ktm where ktm.moderatorid=u.id and ktm.idkat = kt.idkat) > 0 then 1 else 0 \
+  end "MentorKat", \
+  sr.nazivStatus as "StatusRada", \
+  u.name as "MentorRada", au.name as "AutorRada",  pr.ocjena as "FinalOcjena", mr.ocjena as "RadOcjena" from pristupnirad pr \
+  inner join vrstarada vr on pr.vrstaRadaId = vr.idVrsta \
+  inner join kategorija kt ON kt.idKat = pr.kategorijaId \
+  inner join statusrada sr on pr.statusId = sr.idStatus \
+  inner join mentorirad mr on mr.idrad = pr.idrad \
+  inner join users u on mr.idment = u.id \
+  inner join users au on pr.autorid = au.id \
+  where u.username = $1',[uname], (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
+}
+
 const getMentoriByKategorija = (request, response) => {
   const KatId = parseInt(request.params.idkat)
   const UserId = parseInt(request.params.iduser)
@@ -255,8 +310,20 @@ const getMentoriByKategorija = (request, response) => {
   pool.query('select u.id, u.name,mk.idkat \
   from mentorikategorije mk inner join users u \
   on u.id = mk.idment \
-  where mk.idkat = $1 and mk.idment not in \
-  (select mr.idment from mentorirad mr inner join pristupnirad pr on mr.idrad = pr.idrad where pr.autorid=$2)', [KatId,UserId], (error, results) => {
+  where mk.idkat = $1 and u.id not in \
+  (select mr.idment from mentorirad mr inner join pristupnirad pr on mr.idrad = pr.idrad where pr.autorid=$2 and pr.kategorijaid=$1)', [KatId,UserId], (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
+
+const ProsjekOcjenaPoKategoriji = (request, response) => {
+
+  pool.query('select kt.idkat,kt.nazivkat,round(avg(pr.ocjena),2) as prosjek \
+  from kategorija kt inner join pristupnirad pr \
+  on kt.idkat = pr.kategorijaid group by kt.idkat', (error, results) => {
     if (error) {
       throw error
     }
@@ -374,7 +441,6 @@ const updateWorkStatus = (request, response) => {
 
 const updateWorkAcceptance = (request, response) => {
   
-  
   const { RadId,Ocjena} = request.body
   console.log("Upd rad1: "+RadId)
   console.log("Upd ocjena1: "+Ocjena)
@@ -391,6 +457,20 @@ const updateWorkAcceptance = (request, response) => {
   )
 }
 
+const IsWorkAccepted = (request, response) => {
+  const RadId = parseInt(request.params.idrad)
+  //const id = 2
+  //const RadId = 1;
+  console.log("Rad provjera ocjene potvrda: "+RadId)
+
+  pool.query('select ocjena from pristupnirad where idrad=$1', [RadId], (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
+
 module.exports = {
   getUsers,
   getUsersPerPage,
@@ -404,8 +484,10 @@ module.exports = {
   deleteUser,
   getMojiRadovi,
   getRadoviMentor,
+  getRadoviMentorPretraga,
   getAllRadovi,
   getMentoriByKategorija,
+  ProsjekOcjenaPoKategoriji,
   getKategorije,
   getStatusi,
   createMentorRad,
@@ -415,5 +497,6 @@ module.exports = {
   updateWorkStatus,
   updateWorkAcceptance,
   ProvjeriOcjenuRadaMentora,
+  IsWorkAccepted,
   createWork
 }

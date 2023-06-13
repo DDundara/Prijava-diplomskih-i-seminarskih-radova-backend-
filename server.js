@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));   /* bodyParser.urlencoded() is
 
 const db = require("./app/models");
 const db2 = require('./app/models/queries')
-db.sequelize.sync();
+//db.sequelize.sync();
 // // drop the table if it already exists
 // db.sequelize.sync({ force: true }).then(() => {
 //   console.log("Drop and re-sync db.");
@@ -26,7 +26,7 @@ db.sequelize.sync();
 
 // simple route
 app.get("/", (req, res) => {
-  res.json({ message: "Welcome to bezkoder application." });
+  res.json({ message: "Aplikacija za predaju diplomskih i seminarskih radova." });
 });
 
 
@@ -46,7 +46,14 @@ app.get('/api/workgrade/:idrad/:radname/:idkat/:katname', db2.getUserById)
 app.get('/api/mentorsbycategory/:idkat/:iduser', db2.getMentoriByKategorija)
 app.get('/api/prosjekocjenapokategoriji', db2.ProsjekOcjenaPoKategoriji)
 app.get('/api/userdelete/:id', db2.getUserById)
+app.post('/api/kategorijesve', db2.createKategorija)
+app.get('/api/kategorijementorialljoin', db2.getKategorijeMentoriAllJoin)
+app.post('/api/kategorijementorialljoin', db2.createKategorijaMentor)
 app.get('/api/kategorije', db2.getKategorije)
+app.get('/api/kategorijesve', db2.getKategorijeSve)
+app.get('/api/svimentori', db2.getAllMentori)
+app.get('/api/svimentoriadd/:idkat/:katname', db2.getAllMentoriForAdd)
+app.get('/api/kategorijementori/:idkat/:katname', db2.getKategorijeMentori)
 app.get('/api/statusi', db2.getStatusi)
 app.post('/api/users', db2.createUser)
 app.post('/api/sviradovi', db2.createWork)
@@ -59,6 +66,13 @@ app.put('/api/workstatus/:idrad', db2.updateWorkStatus)
 app.put('/api/workacceptance/:idrad/:ocjena', db2.updateWorkAcceptance)
 app.get('/api/isworkaccepted/:idrad', db2.IsWorkAccepted)
 app.delete('/api/users/:id', db2.deleteUser)
+app.delete('/api/kategorijesve/:idzapis', db2.removeMentorFromCategory)
+app.get('/api/azurirajkategoriju/:idkat', db2.getKategorijaById)
+app.put('/api/kategorijesve/:idkat', db2.updateKategorija)
+app.get('/api/radoviadmin/:page', db2.getRadoviAdmin)
+app.get('/api/radoviadminpretraga', db2.getRadoviAdminPretraga)
+app.get('/api/radovitotal', db2.getRadoviTotal)
+app.delete('/api/radovitotal', db2.deleteWork)
 
 require("./app/routes/turorial.routes")(app);
 require("./app/routes/student.routes")(app);

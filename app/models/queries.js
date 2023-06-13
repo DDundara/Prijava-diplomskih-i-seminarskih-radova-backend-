@@ -99,6 +99,8 @@ const getUsersAndCities = (request, response) => {
   }
 
 
+
+
 const getUserById = (request, response) => {
   const id = parseInt(request.params.id)
   //const id = 2
@@ -163,6 +165,31 @@ const deleteUser = (request, response) => {
     response.status(200).send(`User deleted with ID: ${id}`)
   })
 }
+//kategorije 
+
+const createKategorija = (request, response) => {
+  const { nazivkat, moderatorid} = request.body
+
+  pool.query('INSERT INTO kategorija (nazivkat, moderatorid) VALUES ($1,$2)', [nazivkat, moderatorid], (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(201).send(`Kategorija added with ID: ${results.insertId}`)
+  })
+}
+
+const createKategorijaMentor = (request, response) => {
+  const { idkat, idment} = request.body
+  console.log("IDkatinsert: "+idkat)
+  console.log("IDmentinsert: "+idment)
+
+  pool.query('INSERT INTO mentorikategorije (idkat, idment) VALUES ($1,$2)', [idkat, idment], (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(201).send(`Kategorija added with ID: ${results.insertId}`)
+  })
+}
 
 const getKategorije= (request, response) => {
   pool.query('select k.idkat, k.nazivkat from kategorija k', (error, results) => {
@@ -170,6 +197,117 @@ const getKategorije= (request, response) => {
       throw error
     }
     response.status(200).json(results.rows)
+  })
+}
+
+const getKategorijeSve= (request, response) => {
+  pool.query('select kt.idkat,kt.nazivkat, u.name as moderator  from kategorija kt inner join users u \
+  on kt.moderatorid = u.id', (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
+
+const getKategorijaById = (request, response) => {
+  const KatId = parseInt(request.params.idkat)
+  //const id = 2
+  console.log("IDkat for edit: "+KatId)
+
+  pool.query('SELECT * FROM kategorija WHERE idkat = $1', [KatId], (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
+
+const getRadoviTotal = (request, response) => {
+  pool.query('select count(*) "total", ceiling(count(*)/5::float) "numOfpages" from pristupnirad', (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
+
+const updateKategorija = (request, response) => {
+  const idkat = parseInt(request.params.idkat)
+  console.log("IDupdkat: "+idkat)
+  const { nazivkat, moderatorid } = request.body
+
+  pool.query(
+    'UPDATE kategorija SET nazivkat = $1, moderatorid = $2 WHERE idkat = $3',
+    [nazivkat, moderatorid, idkat],
+    (error, results) => {
+      if (error) {
+        throw error
+      }
+      response.status(200).send(`User modified with ID: ${idkat}`)
+    }
+  )
+}
+
+const getKategorijeMentori = (request, response) => {
+  const KatId = parseInt(request.params.idkat)
+
+  console.log("Kat pretraga: "+KatId)
+
+  pool.query('select mk.idkatment, kt.idkat,kt.nazivkat, u.name as mentor from kategorija kt \
+  inner join mentorikategorije mk ON mk.idkat = kt.idkat \
+  inner join users u on mk.idment = u.id where kt.idkat =$1', [KatId], (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
+
+const getKategorijeMentoriAllJoin = (request, response) => {
+
+  pool.query('select kt.idkat,kt.nazivkat, u.name as mentor from kategorija kt \
+  inner join mentorikategorije mk ON mk.idkat = kt.idkat \
+  inner join users u on mk.idment = u.id', (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
+
+
+
+const getAllMentori= (request, response) => {
+  pool.query('select u.id, u.name from users u where u.groupid = 2', (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
+
+const getAllMentoriForAdd= (request, response) => {
+  const KatId = parseInt(request.params.idkat)
+  console.log("Kat adding: "+KatId)
+  pool.query('select u.id, u.name from users u where u.groupid = 2 and u.id not in \
+  (select kt.moderatorid from kategorija kt where kt.idkat = $1) \
+  and u.id not in (select mk.idment from mentorikategorije mk where mk.idkat = $1)',[KatId], (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
+
+const removeMentorFromCategory = (request, response) => {
+  const IdZapis = parseInt(request.params.idzapis)
+  console.log("Zapis brisanja: "+IdZapis)
+  pool.query('DELETE FROM mentorikategorije WHERE idkatment = $1', [IdZapis], (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).send(`User deleted with ID: ${IdZapis}`)
   })
 }
 
@@ -216,6 +354,72 @@ const getMojiRadovi = (request, response) => {
     }
     response.status(200).json(results.rows)
   })
+}
+
+const getRadoviAdmin = (request, response) => {
+  const page = parseInt(request.params.page)
+  console.log("pagge list rad: "+page)
+  pool.query('select pr.idrad,pr.nazivrad,pr.opis, \
+  pr.datumdospijeca,vr.nazivvrsta as "VrstaRada", \
+  kt.idkat, kt.nazivKat as "KategorijaRada",\
+  sr.nazivStatus as "StatusRada",\
+  au.name as "AutorRada", pr.ocjena as "Ocjena"\
+  from pristupnirad pr \
+  inner join vrstarada vr on pr.vrstaRadaId = vr.idVrsta \
+  inner join kategorija kt ON kt.idKat = pr.kategorijaId \
+  inner join statusrada sr on pr.statusId = sr.idStatus \
+  inner join users au on pr.autorid = au.id order by pr.idrad ASC limit 5 offset $1',[(page-1)*5],(error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
+
+const getRadoviAdminPretraga = (request, response) => {
+
+  const datumod = request.query.datumod;
+  const datumdo = request.query.datumdo;
+
+  console.log("Datum od1: "+datumod)
+  console.log("Datum do1: "+datumdo)
+
+
+if(request.query.datumod!=null && request.query.datumod!="" && request.query.datumdo!=null && request.query.datumdo!=""){
+
+  pool.query('select pr.idrad,pr.nazivrad,pr.opis, \
+  pr.datumdospijeca,vr.nazivvrsta as "VrstaRada", \
+  kt.idkat, kt.nazivKat as "KategorijaRada", \
+  sr.nazivStatus as "StatusRada", \
+  au.name as "AutorRada",  pr.ocjena as "FinalOcjena" from pristupnirad pr \
+  inner join vrstarada vr on pr.vrstaRadaId = vr.idVrsta \
+  inner join kategorija kt ON kt.idKat = pr.kategorijaId \
+  inner join statusrada sr on pr.statusId = sr.idStatus \
+  inner join users au on pr.autorid = au.id \
+  where pr.datumdospijeca between $1 and $2',[datumod,datumdo], (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
+else
+{
+  pool.query('select pr.idrad,pr.nazivrad,pr.opis, \
+  pr.datumdospijeca,vr.nazivvrsta as "VrstaRada", \
+  kt.idkat, kt.nazivKat as "KategorijaRada", \
+  sr.nazivStatus as "StatusRada", \
+  au.name as "AutorRada",  pr.ocjena as "FinalOcjena" from pristupnirad pr \
+  inner join vrstarada vr on pr.vrstaRadaId = vr.idVrsta \
+  inner join kategorija kt ON kt.idKat = pr.kategorijaId \
+  inner join statusrada sr on pr.statusId = sr.idStatus \
+  inner join users au on pr.autorid = au.id', (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).json(results.rows)
+  })
+}
 }
 
 const getRadoviMentor = (request, response) => {
@@ -424,12 +628,13 @@ const updateWorkGrade = (request, response) => {
 const updateWorkStatus = (request, response) => {
   
   
-  const { RadId} = request.body
+  const { RadId, StatusId} = request.body
   console.log("Upd rad1: "+RadId)
+  console.log("Upd stat1: "+StatusId)
 
   pool.query(
-    'UPDATE pristupnirad SET statusid = 2 where idrad = $1',
-    [RadId],
+    'UPDATE pristupnirad SET statusid = $1 where idrad = $2',
+    [StatusId,RadId],
     (error, results) => {
       if (error) {
         throw error
@@ -471,6 +676,18 @@ const IsWorkAccepted = (request, response) => {
   })
 }
 
+const deleteWork = (request, response) => {
+  const idrad = parseInt(request.query.idrad)
+  console.log("Rad delete: "+idrad)
+
+  pool.query('DELETE FROM pristupnirad WHERE idrad = $1', [idrad], (error, results) => {
+    if (error) {
+      throw error
+    }
+    response.status(200).send(`Work deleted with ID: ${idrad}`)
+  })
+}
+
 module.exports = {
   getUsers,
   getUsersPerPage,
@@ -483,12 +700,25 @@ module.exports = {
   updateUser,
   deleteUser,
   getMojiRadovi,
+  getRadoviAdmin,
+  getRadoviAdminPretraga,
   getRadoviMentor,
   getRadoviMentorPretraga,
   getAllRadovi,
+  getRadoviTotal,
   getMentoriByKategorija,
   ProsjekOcjenaPoKategoriji,
+  createKategorija,
+  createKategorijaMentor,
   getKategorije,
+  getKategorijeSve,
+  getKategorijaById,
+  updateKategorija,
+  getKategorijeMentori,
+  getKategorijeMentoriAllJoin,
+  getAllMentori,
+  getAllMentoriForAdd,
+  removeMentorFromCategory,
   getStatusi,
   createMentorRad,
   getAllMentoriRad,
@@ -498,5 +728,6 @@ module.exports = {
   updateWorkAcceptance,
   ProvjeriOcjenuRadaMentora,
   IsWorkAccepted,
-  createWork
+  createWork,
+  deleteWork
 }

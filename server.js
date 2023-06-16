@@ -16,13 +16,9 @@ app.use(express.json());  /* bodyParser.json() is deprecated */
 // parse requests of content-type - application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));   /* bodyParser.urlencoded() is deprecated */
 
-const db = require("./app/models");
+
 const db2 = require('./app/models/queries')
-//db.sequelize.sync();
-// // drop the table if it already exists
-// db.sequelize.sync({ force: true }).then(() => {
-//   console.log("Drop and re-sync db.");
-// });
+
 
 // simple route
 app.get("/", (req, res) => {
@@ -47,6 +43,7 @@ app.get('/api/mentorsbycategory/:idkat/:iduser', db2.getMentoriByKategorija)
 app.get('/api/prosjekocjenapokategoriji', db2.ProsjekOcjenaPoKategoriji)
 app.get('/api/userdelete/:id', db2.getUserById)
 app.post('/api/kategorijesve', db2.createKategorija)
+app.post('/api/cities', db2.createNoviGrad)
 app.get('/api/kategorijementorialljoin', db2.getKategorijeMentoriAllJoin)
 app.post('/api/kategorijementorialljoin', db2.createKategorijaMentor)
 app.get('/api/kategorije', db2.getKategorije)
@@ -73,10 +70,6 @@ app.get('/api/radoviadmin/:page', db2.getRadoviAdmin)
 app.get('/api/radoviadminpretraga', db2.getRadoviAdminPretraga)
 app.get('/api/radovitotal', db2.getRadoviTotal)
 app.delete('/api/radovitotal', db2.deleteWork)
-
-require("./app/routes/turorial.routes")(app);
-require("./app/routes/student.routes")(app);
-require("./app/routes/dvorana.routes")(app);
 
 // set port, listen for requests
 const PORT = process.env.PORT || 8080;

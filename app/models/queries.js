@@ -34,31 +34,11 @@ const getUsers = (request, response) => {
   
 }
 
-// const getUsersPerPage = (request, response) => {
-  
-
-//     //const page = parseInt(request.params.page)
-//     const page = parseInt(request.params.page)
-//     // if(page == null){
-//     //     page = 0;
-//     // }
-//     pool.query('SELECT * FROM users ORDER BY id ASC limit 5 offset $1',[(page-1)*5], (error, results) => {
-//       if (error) {
-//         throw error
-//       }
-//       response.status(200).json(results.rows)
-//     })
-//   }
-
- 
 const getUsersPerPage = (request, response) => {
   
 
-  //const page = parseInt(request.params.page)
   const page = parseInt(request.params.page)
-  // if(page == null){
-  //     page = 0;
-  // }
+
   pool.query('select u.id,u.name,u.email,u.spol,u.gradid, g.naziv as "gradnaziv", \
   u.username,u.password,u.registered,u.last_login,u.groupid,ug.naziv as "grupanaziv" \
   from users u inner join usersgroups ug on u.groupid = ug.idgroup inner join gradovi g \
@@ -86,6 +66,18 @@ const getUsersAndCities = (request, response) => {
         throw error
       }
       response.status(200).json(results.rows)
+    })
+  }
+
+  const createNoviGrad = (request, response) => {
+    const { novigrad } = request.body
+    console.log("Novi grad naziv: "+novigrad)
+    pool.query('INSERT INTO gradovi (naziv) \
+    VALUES ($1) returning id', [novigrad], (error, results) => {
+      if (error) {
+        throw error
+      }
+      response.status(201).send(`${results.rows[0].id}`)
     })
   }
 
@@ -141,11 +133,11 @@ const createUser = (request, response) => {
 const updateUser = (request, response) => {
   const id = parseInt(request.params.id)
   console.log("IDupd: "+id)
-  const { name, email, spol, gradid  } = request.body
+  const { name, email, spol, gradid,groupid  } = request.body
 
   pool.query(
-    'UPDATE users SET name = $1, email = $2, spol=$3, gradid=$4 WHERE id = $5',
-    [name, email, spol, gradid, id],
+    'UPDATE users SET name = $1, email = $2, spol=$3, gradid=$4, groupid=$5 WHERE id = $6',
+    [name, email, spol, gradid, groupid,id],
     (error, results) => {
       if (error) {
         throw error
@@ -170,12 +162,22 @@ const deleteUser = (request, response) => {
 const createKategorija = (request, response) => {
   const { nazivkat, moderatorid} = request.body
 
-  pool.query('INSERT INTO kategorija (nazivkat, moderatorid) VALUES ($1,$2)', [nazivkat, moderatorid], (error, results) => {
+  pool.query('INSERT INTO kategorija (nazivkat, moderatorid) VALUES ($1,$2) returning idkat', [nazivkat, moderatorid], (error, results) => {
     if (error) {
       throw error
     }
-    response.status(201).send(`Kategorija added with ID: ${results.insertId}`)
+    response.status(201).send(`Kategorija added with ID: ${results.rows[0].idkat}`)
+//ubacujem odmah mentora i kategoriju za mentorstvo
+console.log("IDkat za mentorstvo: "+results.rows[0].idkat)
+    pool.query('INSERT INTO mentorikategorije (idkat, idment) VALUES ($1,$2)', [results.rows[0].idkat, moderatorid], (error, results) => {
+      if (error) {
+        throw error
+      }
+    })
+
   })
+
+
 }
 
 const createKategorijaMentor = (request, response) => {
@@ -321,10 +323,6 @@ const getStatusi = (request, response) => {
 }
 
 const getAllRadovi = (request, response) => {
-  // const uname = request.params.username
-  // const username = 'markic';
-  // //const id = 2
-  // console.log("Name nesto: "+uname)
 
   pool.query('select * from pristupnirad', (error, results) => {
     if (error) {
@@ -561,10 +559,6 @@ const createMentorRad = (request, response) => {
 }
 
 const getAllMentoriRad = (request, response) => {
-  // const uname = request.params.username
-  // const username = 'markic';
-  // //const id = 2
-  // console.log("Name nesto: "+uname)
 
   pool.query('select * from mentorirad', (error, results) => {
     if (error) {
@@ -664,8 +658,7 @@ const updateWorkAcceptance = (request, response) => {
 
 const IsWorkAccepted = (request, response) => {
   const RadId = parseInt(request.params.idrad)
-  //const id = 2
-  //const RadId = 1;
+
   console.log("Rad provjera ocjene potvrda: "+RadId)
 
   pool.query('select ocjena from pristupnirad where idrad=$1', [RadId], (error, results) => {
@@ -709,6 +702,7 @@ module.exports = {
   getMentoriByKategorija,
   ProsjekOcjenaPoKategoriji,
   createKategorija,
+  createNoviGrad,
   createKategorijaMentor,
   getKategorije,
   getKategorijeSve,

@@ -5,7 +5,7 @@ const cors = require("cors");
 const app = express();
 
 var corsOptions = {
-  origin: ["http://localhost:8081","http://localhost:8082"]
+  origin: ["http://localhost:8081","http://localhost:8082","https://webapps-darkodundara-frontend.onrender.com"]
 };
 
 app.use(cors(corsOptions));
